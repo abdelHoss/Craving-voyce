@@ -17,13 +17,15 @@ import {
   IconButton,
   Box,
   useMediaQuery,
+  Tooltip,
+  Zoom,
 } from "@material-ui/core";
-import { appClasses } from "../styles/theme";
+import { appClasses } from "../frontend/styles/theme";
 import { FixedSizeGrid as List } from "react-window";
 import AutoSizer from "react-virtualized-auto-sizer";
 import RestaurantMenuIcon from "@material-ui/icons/RestaurantMenu";
 import CloseIcon from "@material-ui/icons/Close";
-import defaultCardImage from "../images/background/default_card_image.jpg";
+import defaultCardImage from "../frontend/images/background/default_card_image.jpg";
 import FingerPrintJS from "@fingerprintjs/fingerprintjs";
 import RegisterEmail from "./RegisterEmail";
 
@@ -54,93 +56,38 @@ const ListingCards = (props) => {
   );
   const extraSmallScreen = useMediaQuery("(max-width:450px)");
 
-  const environment = {
-    request: {
-      key: "TmV3T3JkZXI4NTQzMmZvckdyZWVuQ3JhdmluZ3RoZURlbGl2ZXJ5Vm95Y2VBbG90TW9yZWV4dHJhdmFnYW50RWFzaWVyU0ltcGxlckJlYXV0aWZ1bE1pa2VSb3RoODk1NjMyQXN0cmF6V2FybmVyQ3V6",
-    },
-  };
-
-  const BASE_URL = "http://localhost:5000";
-  const wrong_display =
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNikAQAACIAHF/uBd8AAAAASUVORK5CYII=";
-
   const filterItems = (object) => {
     let cardCount = 4;
     if (mediumScreen) cardCount = 3;
     else if (extraSmallScreen) cardCount = 1;
     else if (smallScreen) cardCount = 2;
-
     switch (props.filter) {
       case "by_price":
-        object.sort((a, b) => {
-          const first_price = Number(a.price.slice(1, a.price.length));
-          const second_price = Number(b.price.slice(1, b.price.length));
-          return first_price - second_price;
-        });
+        object.sort((a, b) => Number(a.price - b.price));
         break;
       case "by_delivery_price":
-        let free_array = [];
-        let others_array = [];
-        object.map((item) => {
-          if (item.delivery_fee !== "Free delivery") {
-            others_array.push(item);
-          } else {
-            free_array.push(item);
-          }
-        });
-
-        others_array.sort((a, b) => {
-          let prices = [
-            Number(a.delivery_fee.slice(1, a.delivery_fee.length)),
-            Number(b.delivery_fee.slice(1, b.delivery_fee.length)),
-          ];
-
-          if (a.delivery_fee.length > 6) {
-            prices[0] = Number(
-              a.delivery_fee.slice(1, a.delivery_fee.length - 9)
-            );
-          }
-          if (b.delivery_fee.length > 6) {
-            prices[1] = Number(
-              b.delivery_fee.slice(1, b.delivery_fee.length - 9)
-            );
-          }
-          return prices[0] - prices[1];
-        });
-        object = [...free_array, ...others_array];
+        object.sort((a, b) => Number(a.delivery_fee - b.delivery_fee));
         break;
-
       case "by_delivery_time":
         object.sort((a, b) => {
-          const first_number =
-            Number(a.delivery_time.slice(0, 2)) +
-            Number(a.delivery_time.slice(3, 5));
-          const second_number =
-            Number(b.delivery_time.slice(0, 2)) +
-            Number(b.delivery_time.slice(3, 5));
+          const first_number = eval(a.delivery_time.replace("–", "+"));
+          const second_number = eval(b.delivery_time.replace("–", "+"));
           return first_number - second_number;
         });
         break;
       case "by_price_range":
-        let temp_data = object.filter((item) => {
-          const price = Number(item.price.slice(1, item.price.length));
-          if (price >= props.range[0] && price <= props.range[1]) {
-            return item;
-          }
+        object = object.filter((item) => {
+          const price = Number(item.price);
+          if (price >= props.range[0] && price <= props.range[1]) return item;
         });
-        object = temp_data;
         break;
       case "by_search_query":
-        temp_data = object.filter((item) => {
-          const title_search = item.title.toLowerCase().search(props.query);
-          const description_search = item.description
-            .toLowerCase()
-            .search(props.query);
-          if (title_search !== -1 || description_search !== -1) {
+        object = object.filter((item) => {
+          const search_result = (item.title + item.description).toLowerCase();
+          if (search_result.search(props.query.toLowerCase()) !== -1) {
             return item;
           }
         });
-        object = temp_data;
         break;
 
       default:
@@ -183,23 +130,21 @@ const ListingCards = (props) => {
               <CardActionArea className="action-card">
                 <CardMedia
                   className={classes.foodCard}
-                  image={
-                    element.image && element.image !== wrong_display
-                      ? element.image
-                      : defaultCardImage
-                  }
+                  image={element.image ? element.image : defaultCardImage}
                   title={element.title + " for delivery"}
                 />
                 <CardContent>
                   <Typography
                     align="center"
                     gutterBottom
-                    variant={smallScreen ? "h6" : "h5"}
+                    variant={
+                      smallScreen || element.title.length >= 65 ? "body1" : "h6"
+                    }
                   >
                     {element.title}
                   </Typography>
                   <Typography align="center" variant="h6">
-                    {element.price.slice(1, element.price.length)}
+                    {element.price}
                     <span> &#36;</span>
                   </Typography>
                 </CardContent>
@@ -262,11 +207,11 @@ const ListingCards = (props) => {
       const fp = await fpPromise;
       const result = await fp.get();
       setDeviceFingerprint(result.visitorId);
-      fetch(BASE_URL + "/verify/fingerprint", {
+      fetch(process.env.REACT_APP_SERVER + "/verify/fingerprint", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          secret_key: environment.request.key,
+          secret_key: process.env.REACT_APP_SECRET_KEY,
           fingerprint: result.visitorId,
         }),
       })
@@ -301,26 +246,41 @@ const ListingCards = (props) => {
         </IconButton>
         <img
           alt="Dish illustration"
-          src={
-            modalInfo.image && modalInfo.image !== wrong_display
-              ? modalInfo.image
-              : defaultCardImage
-          }
+          src={modalInfo.image ? modalInfo.image : defaultCardImage}
           className="listing-modal-image"
         />
         <DialogTitle> {modalInfo.title} </DialogTitle>
         <DialogContent dividers={true} style={{ minHeight: "150px" }}>
-          <Typography variant="h6">
-            {modalInfo.price &&
-              modalInfo.price.slice(1, modalInfo.price.length)}
-            &#36;
-          </Typography>
-          <Typography variant="h6"> {modalInfo.delivery_time} </Typography>
-          <Typography variant="h6">
-            {modalInfo.delivery_fee === "$0 delivery"
-              ? "Free delivery"
-              : modalInfo.delivery_fee}
-          </Typography>
+          <Tooltip
+            TransitionComponent={Zoom}
+            arrow
+            placement="top"
+            title="Price"
+          >
+            <Typography variant="h6">
+              {modalInfo.price} &#36;
+            </Typography>
+          </Tooltip>
+          <Tooltip
+            TransitionComponent={Zoom}
+            arrow
+            placement="top"
+            title="Delivery time"
+          >
+            <Typography variant="h6"> {modalInfo.delivery_time} min</Typography>
+          </Tooltip>
+          <Tooltip
+            TransitionComponent={Zoom}
+            arrow
+            placement="top"
+            title="Delivery fee"
+          >
+            <Typography variant="h6">
+              {modalInfo.delivery_fee === 0
+                ? "Free delivery"
+                : modalInfo.delivery_fee + "$ delivery"}
+            </Typography>
+          </Tooltip>
           <DialogContentText
             style={{
               textAlign:

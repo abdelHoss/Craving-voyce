@@ -1,6 +1,6 @@
 import React from "react";
 import { AppBar, Typography, Box, useMediaQuery } from "@material-ui/core";
-import { appClasses } from "../styles/theme";
+import { appClasses } from "../frontend/styles/theme";
 
 const Footer = () => {
   const [keyword, setKeyword] = React.useState();
@@ -44,7 +44,7 @@ const Footer = () => {
     <Box mt="15%">
       <AppBar className={classes.footer} position="relative" color="primary">
         <Typography
-          variant={smallScreen ? "h5" : "h4"}
+          variant={smallScreen ? "h6" : "h4"}
           className={classes.animationText}
         >
           Craving for some{" "}
@@ -56,7 +56,7 @@ const Footer = () => {
           </span>
         </Typography>
         <Box style={{ textAlign: "center", marginTop: "3%" }}>
-          <Typography variant="h6">
+          <Typography variant={smallScreen ? "body1" : "h6"}>
             {date.getFullYear()} Craving Voyce &copy;
           </Typography>
         </Box>

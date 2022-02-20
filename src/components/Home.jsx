@@ -1,9 +1,7 @@
-
 import React from "react";
 import { Route } from "react-router-dom";
 import {
   TextField,
-  InputAdornment,
   Button,
   Container,
   Grid,
@@ -18,24 +16,13 @@ import {
 } from "@material-ui/core";
 import Autocomplete from "@material-ui/lab/Autocomplete";
 import { withStyles } from "@material-ui/core/styles";
-import { styleClass } from "../styles/theme";
+import { styleClass } from "../frontend/styles/theme";
 import { purple } from "@material-ui/core/colors";
-import { LocationOn } from "@material-ui/icons";
+import LocationOnIcon from "@material-ui/icons/LocationOn";
 import SendIcon from "@material-ui/icons/Send";
 import EcoIcon from "@material-ui/icons/Eco";
-import firstLogo from "../images/logo/home_first_logo.png";
+import firstLogo from "../frontend/images/logo/home_first_logo.png";
 
-const environment = {
-  mapbox: {
-    accessToken:
-      "pk.eyJ1IjoiYWJkZWwtaG9zcyIsImEiOiJja28xNDFieGUwMWRiMnhyeHEyM3hkendnIn0.8xTTj2fBlz5AbmxO202K7g",
-  },
-  request: {
-    key: "TmV3T3JkZXI4NTQzMmZvckdyZWVuQ3JhdmluZ3RoZURlbGl2ZXJ5Vm95Y2VBbG90TW9yZWV4dHJhdmFnYW50RWFzaWVyU0ltcGxlckJlYXV0aWZ1bE1pa2VSb3RoODk1NjMyQXN0cmF6V2FybmVyQ3V6",
-  },
-};
-const mapbox_base = "https://api.mapbox.com/geocoding/v5/mapbox.places/";
-const BASE_URL = "http://localhost:5000";
 const orientation =
   (window.screen.orientation || {}).type ||
   window.screen.mozOrientation ||
@@ -71,29 +58,19 @@ class Home extends React.Component {
 
   componentDidMount() {
     window.addEventListener("scroll", this.handleScroll, true);
-    const requestObject = JSON.parse(
-      localStorage.getItem("food_search_object")
-    );
-    const loadedAll = JSON.parse(localStorage.getItem("dataLoaded"));
     if (window.screen.width <= 1024 && orientation !== "landscape-primary") {
       this.setState({ showFirstLogo: true });
     }
-    if (requestObject && !loadedAll) {
-      fetch(BASE_URL+'/close/browser', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secret_key: environment.request.key }),
-      });
-    }
-
     localStorage.setItem("craving_voyce_food_results_listing", "[]");
     localStorage.setItem("food_search_object", "null");
   }
 
   getLocations(location) {
-    fetch(`${mapbox_base}${location}.json?country=US&access_token=${environment.mapbox.accessToken}`)
-    .then(response => response.json())
-      .then(data => {
+    fetch(
+      `${process.env.REACT_APP_MAPBOX_BASE_URL}${location}.json?country=US,CA&access_token=${process.env.REACT_APP_MAPBOX_ACCESS_TOKEN}`
+    )
+      .then((response) => response.json())
+      .then((data) => {
         let features = data.features;
         if (features.length > 0) {
           if (location.length > 30) {
@@ -163,10 +140,9 @@ class Home extends React.Component {
     localStorage.setItem(
       "food_search_object",
       JSON.stringify({
+        secret_key: process.env.REACT_APP_SECRET_KEY,
         coordinates: this.state.coordinates,
         category: this.state.selected,
-        secret_key: environment.request.key,
-        loop: false,
       })
     );
     localStorage.setItem("dataLoaded", "false");
@@ -186,7 +162,7 @@ class Home extends React.Component {
             }}
           >
             <Box className={classes.locationIconBox}>
-              <LocationOn
+              <LocationOnIcon
                 className={classes.locationOn}
                 style={{
                   color: this.state.searchOnFocus ? "#fff" : purple[500],
@@ -202,13 +178,6 @@ class Home extends React.Component {
               }
               options={this.state.locationResult}
               getOptionLabel={(locations) => locations}
-              inputprops={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LocationOn />
-                  </InputAdornment>
-                ),
-              }}
               renderInput={(params) => (
                 <TextField
                   {...params}
@@ -219,7 +188,7 @@ class Home extends React.Component {
                   size={smallScreen ? "small" : "medium"}
                   InputLabelProps={{
                     style: {
-                      fontSize: smallScreen ? 12 : 18,
+                      fontSize: smallScreen ? 14 : 18,
                       fontWeight: "bold",
                     },
                   }}
@@ -247,7 +216,13 @@ class Home extends React.Component {
               }
               IconComponent={() => null}
             >
-              <MenuItem value="category" disabled>
+              <MenuItem
+                value="category"
+                style={{
+                  paddingLeft: "25%",
+                }}
+                disabled
+              >
                 Category
               </MenuItem>
               <MenuItem value="vegan">
@@ -285,7 +260,12 @@ class Home extends React.Component {
         </Box>
         <Container className={classes.marginTop10}>
           <Fade in={this.state.showFirstLogo} timeout={750}>
-            <Grid container spacing={1} alignItems="center" justify="center">
+            <Grid
+              container
+              spacing={1}
+              alignItems="center"
+              justifyContent="center"
+            >
               <Grid md={3} xs={6} item>
                 <img
                   className={this.state.showFirstLogo ? "rotateFirstLogo" : ""}
@@ -297,7 +277,7 @@ class Home extends React.Component {
                 <Paper className={classes.rotatingPaper}>
                   <Typography
                     style={{ lineHeight: smallScreen ? "normal" : "3rem" }}
-                    variant={window.screen.width > 600 ? "h5" : "inherit"}
+                    variant={window.screen.width > 600 ? "h5" : "body1"}
                   >
                     Craving for some green, benefit from our service to find
                     local vegan and vegetarian food delivery services in your

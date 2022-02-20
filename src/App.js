@@ -1,5 +1,3 @@
-// eslint-disable-next-line
-
 import React from "react";
 import Navbar from "./components/Navbar.jsx";
 import Home from "./components/Home.jsx";
@@ -10,27 +8,35 @@ import ListingPage from "./components/ListingPage.jsx";
 import { BrowserRouter as Router, Route, Switch } from "react-router-dom";
 
 function App() {
+  React.useEffect(() => {
+    const viewport = document.querySelector("meta[name=viewport]");
+    viewport.setAttribute(
+      "content",
+      viewport.content + ", height=" + window.innerHeight
+    );
+  });
+
   return (
-      <div className="App">
-        <Router>
-          <Navbar />
-          <Switch>
-            <Route exact path="/">
-              <Home />
-            </Route>
-            <Route path="/restaurant/listing">
-              <ListingPage />
-            </Route>
-            <Route path="/about/us">
-              <About />
-            </Route>
-            <Route path="*">
-              <Page404 />
-            </Route>
-          </Switch>
-        </Router>
-        <Footer />
-      </div>
+    <div className="App">
+      <Router>
+        <Navbar />
+        <Switch>
+          <Route exact path="/">
+            <Home />
+          </Route>
+          <Route path="/restaurant/listing">
+            <ListingPage />
+          </Route>
+          <Route path="/about/us">
+            <About />
+          </Route>
+          <Route path="*">
+            <Page404 />
+          </Route>
+        </Switch>
+      </Router>
+      <Footer />
+    </div>
   );
 }
 

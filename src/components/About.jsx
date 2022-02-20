@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Link } from "react-router-dom";
 import {
@@ -10,8 +9,8 @@ import {
   Fade,
   useMediaQuery,
 } from "@material-ui/core";
-import { appClasses } from "../styles/theme";
-import AboutLogo from "../images/logo/about-us-image.gif";
+import { appClasses } from "../frontend/styles/theme";
+import AboutLogo from "../frontend/images/logo/about-us-image.gif";
 
 const About = () => {
   const classes = appClasses();
@@ -81,8 +80,8 @@ const About = () => {
             </Box>
             Craving Voyce is a vegan and vegetarian search engine that helps you
             for searching local food delivery services and restaurants across
-            all the United States faster than most online food ordering
-            services. To use Craving Voyce, navigate to the{" "}
+            all the United States and Canada. To use Craving Voyce, navigate to
+            the{" "}
             <Link
               to="/"
               style={{
@@ -93,7 +92,7 @@ const About = () => {
             </Link>
             , type in your address, choose your category of food, press the
             search button and VOILA! Wait for your listing to show. Searches can
-            take up to one minute to show results.
+            take up to one minute.
             <Box
               mt={2}
               lineHeight={2}

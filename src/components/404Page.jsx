@@ -2,7 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Container, Box, Typography, useMediaQuery } from "@material-ui/core";
-import { appClasses } from "../styles/theme";
+import { appClasses } from "../frontend/styles/theme";
 
 const Page404 = () => {
   const classes = appClasses();
@@ -22,7 +22,7 @@ const Page404 = () => {
           borderRadius={6}
         >
           <Box fontSize={{ xs: 50, lg: 60 }}>OOOPS</Box>
-          You seem to be lost!
+          It seems you are a bit disoriented!
           <Box fontSize={{ xs: "8rem", sm: 280 }}>404</Box>
           <Link to="/" className={classes.homeLink}>
             Home

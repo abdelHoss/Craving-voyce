@@ -24,28 +24,16 @@ import {
   Tooltip,
   useMediaQuery,
 } from "@material-ui/core";
-import { appClasses } from "../styles/theme";
+import { appClasses } from "../frontend/styles/theme";
 import MonetizationOnIcon from "@material-ui/icons/MonetizationOn";
 import QueryBuilderIcon from "@material-ui/icons/QueryBuilder";
-import LocalShippingIcon from "@material-ui/icons/LocalShipping";
 import ReplayIcon from "@material-ui/icons/Replay";
 import ExpandLess from "@material-ui/icons/ExpandLess";
 import ExpandMore from "@material-ui/icons/ExpandMore";
 import SearchIcon from "@material-ui/icons/Search";
-import PriceRange from "../images/icons/PriceRange";
-import FilterAlt from "../images/icons/FilterAlt";
-
-const environment = {
-  mapbox: {
-    accessToken:
-      "pk.eyJ1IjoiYWJkZWwtaG9zcyIsImEiOija28xNDFieGUwMWRiMnhyeHEyM3hkendnIn0.8xTTj2fBlz5AbmxO202K7g",
-  },
-  request: {
-    key: "TmV3T3JkZXI4NTQzMmZvckdyZWVuQ3JhdmluZ3RoZURlbGl2ZXJ5Vm95Y2VBbG90TW9yZWV4dHJhdmFnYW50RWFzaWVyU0ltcGxlckJlYXV0aWZ1bE1pa2VSb3RoODk1NjMyQXN0cmF6V2FybmVyQ3V6",
-  },
-};
-
-const BASE_URL = "http://localhost:5000";
+import LocalShippingIcon from "@material-ui/icons/LocalShipping";
+import PriceRange from "../frontend/images/icons/PriceRange";
+import FilterAlt from "../frontend/images/icons/FilterAlt";
 
 const ListingPage = () => {
   const smallScreen = useMediaQuery((theme) => theme.breakpoints.down("xs"));
@@ -59,22 +47,16 @@ const ListingPage = () => {
   const [rangeValues, setRangeValues] = React.useState([0, 100]);
   const [searchQuery, setSearchQuery] = React.useState("");
   const [openFilterDrawer, setOpenFilterDrawer] = React.useState(false);
-  const [allDataLoaded, setAllDataLoaded] = React.useState(
-    JSON.parse(localStorage.getItem("dataLoaded"))
-  );
+  const [progressValue, setProgressValue] = React.useState(0);
   const requestObject = JSON.parse(localStorage.getItem("food_search_object"));
   const history = useHistory();
 
   const authorize_access_from_server = (data) => {
     if (data) {
-      if (data.secret_key === environment.request.key) {
+      if (data.secret_key === process.env.REACT_APP_SECRET_KEY)
         get_content_from_server(data);
-      } else {
-        history.push("/");
-      }
-    } else {
-      history.push("/");
-    }
+      else history.push("/");
+    } else history.push("/");
   };
 
   React.useEffect(() => {
@@ -82,48 +64,44 @@ const ListingPage = () => {
       history.push("/");
     } else if (!responseData.length && !noResult) {
       authorize_access_from_server(requestObject);
+      setInterval(() => {
+        setProgressValue((previousProgress) =>
+          previousProgress < 100 ? previousProgress + 10 : 100
+        );
+      }, 2500);
     }
   }, []);
 
   const get_content_from_server = (import_data) => {
-    fetch(BASE_URL + "/find/city/deliveries", {
+    fetch(process.env.REACT_APP_SERVER + "/get/restaurant/links", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(import_data),
     })
-    .then(response => response.json())
+      .then((response) => response.json())
       .then((res) => {
-        if (res.content && res.loop > 0 && !res.close_browser) {
-          import_data.loop = true;
-          import_data.close_browser = false;
-          let loop_times = res.loop;
-          const wait_response = (data) => {
-            return new Promise((resolve) => resolve(data));
-          };
-
+        if (res.length > 0) {
           (async () => {
-            for (let i = 0; i < loop_times; i++) {
-              import_data.index = i;
-              const request = fetch(BASE_URL + "/find/city/deliveries", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(import_data),
-              })
-                .then((response) => response.json())
-                .then((sec_res) => {
-                  if (sec_res.loop_again) {
-                    i = 0;
-                    loop_times = sec_res.loop_times;
+            await Promise.all(
+              res.map((restaurant) => {
+                fetch(
+                  process.env.REACT_APP_SERVER + "/find/restaurants/deliveries",
+                  {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      ...restaurant,
+                      secret_key: process.env.REACT_APP_SECRET_KEY,
+                    }),
                   }
-                  if (sec_res.next_disabled) {
-                    setAllDataLoaded(true);
-                    localStorage.setItem("dataLoaded", "true");
-                  }
-                  if (sec_res.content) {
+                )
+                  .then((response) => response.json())
+                  .then((response) => {
+                    setProgressValue(100);
                     const food_session = JSON.parse(
                       localStorage.getItem("craving_voyce_food_results_listing")
                     );
-                    food_session.push(...sec_res.content);
+                    food_session.push(...response);
                     localStorage.setItem(
                       "craving_voyce_food_results_listing",
                       JSON.stringify(food_session)
@@ -136,13 +114,12 @@ const ListingPage = () => {
                         )
                       )
                     );
-                  }
-                })
-                .catch((sec_err) => sec_err);
-              await wait_response(request);
-            }
+                  });
+              })
+            );
           })();
         } else {
+          setProgressValue(100);
           setNoResult(true);
           localStorage.setItem(
             "craving_voyce_food_results_listing",
@@ -171,7 +148,12 @@ const ListingPage = () => {
         className={classes.backdrop}
         open={!noResult && !responseData.length}
       >
-        <CircularProgress color="inherit" size={80} />
+        <CircularProgress color="inherit" variant="determinate" value={progressValue} size={80} />
+        <Box pl={2}>
+          <Typography variant="h4" component="div" color="initial">
+            {progressValue}%
+          </Typography>
+        </Box>
       </Backdrop>
       <Drawer
         anchor="left"
@@ -319,15 +301,9 @@ const ListingPage = () => {
           range={rangeValues}
           query={searchQuery}
         />
-
-        {responseData.length > 0 && !allDataLoaded && (
-          <Box textAlign="center">
-            <CircularProgress color="secondary" size={80} thickness={6} />
-          </Box>
-        )}
       </Box>
       <Zoom in={!noResult && responseData.length > 0}>
-        <Tooltip title="filter" aria-label="filter">
+        <Tooltip title="filters" aria-label="filter">
           <Fab
             onClick={() => setOpenFilterDrawer(true)}
             color="secondary"

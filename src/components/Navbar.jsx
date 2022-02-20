@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import {
   Container,
@@ -12,35 +12,17 @@ import {
   ListItemText,
   ListItemIcon,
   Divider,
-  Dialog,
-  DialogTitle,
-  DialogActions,
-  Button,
-  Slide,
+  Typography,
 } from "@material-ui/core";
-import Typography from "@material-ui/core/Typography";
 import MenuIcon from "@material-ui/icons/Menu";
 import HomeIcon from "@material-ui/icons/Home";
 import HelpIcon from "@material-ui/icons/Help";
 import PersonAddIcon from "@material-ui/icons/PersonAdd";
 import UnsubscribeIcon from "@material-ui/icons/Unsubscribe";
-import DeleteForeverIcon from "@material-ui/icons/DeleteForever";
-import CloseIcon from "@material-ui/icons/Close";
 import FingerPrintJS from "@fingerprintjs/fingerprintjs";
 import RegisterEmail from "./RegisterEmail";
-import { appClasses } from "../styles/theme";
-
-const environment = {
-  request: {
-    key: "TmV3T3JkZXI4NTQzMmZvckdyZWVuQ3JhdmluZ3RoZURlbGl2ZXJ5Vm95Y2VBbG90TW9yZWV4dHJhdmFnYW50RWFzaWVyU0ltcGxlckJlYXV0aWZ1bE1pa2VSb3RoODk1NjMyQXN0cmF6V2FybmVyQ3V6",
-  },
-};
-
-const BASE_URL = "http://localhost:5000";
-
-const slideUp = React.forwardRef((props, ref) => {
-  return <Slide direction="up" ref={ref} {...props} />;
-});
+import UnregisterEmail from "./UnregisterEmail";
+import { appClasses } from "../frontend/styles/theme";
 
 const Navbar = () => {
   const [drawerState, setDrawerState] = React.useState(false);
@@ -50,27 +32,17 @@ const Navbar = () => {
   const [deviceFingerprint, setDeviceFingerprint] = React.useState(null);
   const [actualEmail, setActualEmail] = React.useState(null);
 
-  window.addEventListener("beforeunload", (event) => {
-    event.preventDefault();
-    event.returnValue = "";
-    fetch(BASE_URL + "/close/browser", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ secret_key: environment.request.key }),
-    });
-  });
-
   const verifyFingerprint = () => {
     const fpPromise = FingerPrintJS.load();
     (async () => {
       const fp = await fpPromise;
       const result = await fp.get();
       setDeviceFingerprint(result.visitorId);
-      fetch(BASE_URL + "/verify/fingerprint", {
+      fetch(process.env.REACT_APP_SERVER + "/verify/fingerprint", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          secret_key: environment.request.key,
+          secret_key: process.env.REACT_APP_SECRET_KEY,
           fingerprint: result.visitorId,
         }),
       })
@@ -85,24 +57,7 @@ const Navbar = () => {
     })();
   };
 
-  const unregister = () => {
-    fetch(BASE_URL + "/delete/device/fingerprint", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        secret_key: environment.request.key,
-        fingerprint: deviceFingerprint,
-      }),
-    })
-      .then((response) => response.json())
-      .then((confirm) => {
-        if (confirm === true) {
-          setOpenUnsubscribeModal(false);
-          setFingerprintExist(false);
-        }
-      })
-      .catch((err) => err);
-  };
+  useEffect(() => verifyFingerprint());
 
   const classes = appClasses();
 
@@ -116,16 +71,13 @@ const Navbar = () => {
       >
         <Toolbar>
           <Box display="flex" flexGrow={1}>
-            <Typography edge="start" className="header-title">
-              Craving Voyce
-            </Typography>
+            <Link className={classes.navbarLink} to="/">
+              <Typography edge="start" className="header-title">
+                Craving Voyce
+              </Typography>
+            </Link>
           </Box>
-          <IconButton
-            onClick={() => {
-              setDrawerState(true);
-              verifyFingerprint();
-            }}
-          >
+          <IconButton onClick={() => setDrawerState(true)}>
             <MenuIcon
               style={{
                 fontSize: "2.5rem",
@@ -136,9 +88,7 @@ const Navbar = () => {
             className={classes.navbarDrawer}
             anchor="right"
             open={drawerState}
-            onClose={() => {
-              setDrawerState(false);
-            }}
+            onClose={() => setDrawerState(false)}
           >
             <Box color="primary">
               <Typography
@@ -156,12 +106,8 @@ const Navbar = () => {
                 width: 250,
               }}
               role="presentation"
-              onClick={() => {
-                setDrawerState(false);
-              }}
-              onKeyDown={() => {
-                setDrawerState(false);
-              }}
+              onClick={() => setDrawerState(false)}
+              onKeyDown={() => setDrawerState(false)}
             >
               <List>
                 <Divider />
@@ -216,44 +162,15 @@ const Navbar = () => {
         dialogState={setOpenRegisterModal}
         fingerprintExist={fingerprintExist}
       />
-      <Dialog
+
+      <UnregisterEmail
         open={openUnsubscribeModal}
-        TransitionComponent={slideUp}
-        fullWidth={true}
-        style={{
-          textAlign: "center",
-        }}
-      >
-        <IconButton
-          className={classes.closeButton}
-          edge="start"
-          onClick={() => setOpenUnsubscribeModal(false)}
-        >
-          <CloseIcon />
-        </IconButton>
-        <DialogTitle className={classes.emailModalTitle}>
-          {fingerprintExist
-            ? "Are you sure to unregister all devices linked with " +
-              actualEmail
-            : "You're device is not registered"}
-        </DialogTitle>
-        <DialogActions>
-          <Button
-            onClick={unregister}
-            variant="contained"
-            disabled={!fingerprintExist}
-            size="large"
-            className={fingerprintExist ? classes.deleteButton : ""}
-            style={{
-              width: "60%",
-              margin: "auto",
-            }}
-            endIcon={<DeleteForeverIcon />}
-          >
-            Confirm
-          </Button>
-        </DialogActions>
-      </Dialog>
+        dialogState={setOpenUnsubscribeModal}
+        fingerprintState={setFingerprintExist}
+        fingerprint={deviceFingerprint}
+        fingerprintExist={fingerprintExist}
+        email={actualEmail || localStorage.getItem("emailAddress")}
+      />
     </Container>
   );
 };
